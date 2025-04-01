@@ -37,6 +37,9 @@ public class CityControllerIT {
 	private String clientPassword;
 	private String adminUsername;
 	private String adminPassword;
+	private String clientToken;
+	private String adminToken;
+	private String invalidToken;
 	
 	@BeforeEach
 	void setUp() throws Exception {
@@ -45,16 +48,20 @@ public class CityControllerIT {
 		clientPassword = "123456";
 		adminUsername = "bob@gmail.com";
 		adminPassword = "123456";
+		clientToken = tokenUtil.obtainAccessToken(mockMvc, clientUsername, clientPassword);
+		adminToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
+		invalidToken = adminToken + "xpto"; // Simulates a wrong token
 	}
 
 	@Test
-	public void insertShouldReturn401WhenNoUserLogged() throws Exception {
+	public void insertShouldReturn401WhenIvalidToken() throws Exception {
 
 		CityDTO dto = new CityDTO(null, "Recife");
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
 				mockMvc.perform(post("/cities")
+					.header("Authorization", "Bearer " + invalidToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -65,14 +72,12 @@ public class CityControllerIT {
 	@Test
 	public void insertShouldReturn403WhenClientLogged() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, clientUsername, clientPassword);
-
 		CityDTO dto = new CityDTO(null, "Recife");
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
 				mockMvc.perform(post("/cities")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + clientToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -83,14 +88,12 @@ public class CityControllerIT {
 	@Test
 	public void insertShouldInsertResourceWhenAdminLoggedAndCorrectData() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
-
 		CityDTO dto = new CityDTO(null, "Recife");
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
 				mockMvc.perform(post("/cities")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + adminToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -103,14 +106,12 @@ public class CityControllerIT {
 	@Test
 	public void insertShouldReturn422WhenAdminLoggedAndBlankName() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
-
 		CityDTO dto = new CityDTO(null, "    ");
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
 				mockMvc.perform(post("/cities")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + adminToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));

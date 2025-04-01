@@ -39,6 +39,9 @@ public class EventControllerIT {
 	private String clientPassword;
 	private String adminUsername;
 	private String adminPassword;
+	private String clientToken;
+	private String adminToken;
+	private String invalidToken;
 	
 	@BeforeEach
 	void setUp() throws Exception {
@@ -47,17 +50,21 @@ public class EventControllerIT {
 		clientPassword = "123456";
 		adminUsername = "bob@gmail.com";
 		adminPassword = "123456";
+		
+		clientToken = tokenUtil.obtainAccessToken(mockMvc, clientUsername, clientPassword);
+		adminToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
+		invalidToken = adminToken + "xpto"; // Simulates a wrong token
 	}
 
 	@Test
-	public void insertShouldReturn401WhenNoUserLogged() throws Exception {
+	public void insertShouldReturn401WhenInvalidToken() throws Exception {
 
-		LocalDate nextMonth = LocalDate.now().plusMonths(1L);
-		EventDTO dto = new EventDTO(null, "Expo XP", nextMonth, "https://expoxp.com.br", 1L);
+		EventDTO dto = new EventDTO(null, "Expo XP", LocalDate.of(2021, 5, 18), "https://expoxp.com.br", 1L);
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
 				mockMvc.perform(post("/events")
+					.header("Authorization", "Bearer " + invalidToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -68,7 +75,6 @@ public class EventControllerIT {
 	@Test
 	public void insertShouldInsertResourceWhenClientLoggedAndCorrectData() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, clientUsername, clientPassword);
 		LocalDate nextMonth = LocalDate.now().plusMonths(1L);
 		
 		EventDTO dto = new EventDTO(null, "Expo XP", nextMonth, "https://expoxp.com.br", 1L);
@@ -76,7 +82,7 @@ public class EventControllerIT {
 		
 		ResultActions result =
 				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + clientToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -92,7 +98,6 @@ public class EventControllerIT {
 	@Test
 	public void insertShouldInsertResourceWhenAdminLoggedAndCorrectData() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
 		LocalDate nextMonth = LocalDate.now().plusMonths(1L);
 		
 		EventDTO dto = new EventDTO(null, "Expo XP", nextMonth, "https://expoxp.com.br", 1L);
@@ -100,7 +105,7 @@ public class EventControllerIT {
 		
 		ResultActions result =
 				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + adminToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -116,7 +121,7 @@ public class EventControllerIT {
 	@Test
 	public void insertShouldReturn422WhenAdminLoggedAndBlankName() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
+
 		LocalDate nextMonth = LocalDate.now().plusMonths(1L);
 		
 		EventDTO dto = new EventDTO(null, "      ", nextMonth, "https://expoxp.com.br", 1L);
@@ -124,7 +129,7 @@ public class EventControllerIT {
 		
 		ResultActions result =
 				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + adminToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -137,7 +142,6 @@ public class EventControllerIT {
 	@Test
 	public void insertShouldReturn422WhenAdminLoggedAndPastDate() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
 		LocalDate pastMonth = LocalDate.now().minusMonths(1L);
 		
 		EventDTO dto = new EventDTO(null, "Expo XP", pastMonth, "https://expoxp.com.br", 1L);
@@ -145,7 +149,7 @@ public class EventControllerIT {
 		
 		ResultActions result =
 				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + adminToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -158,7 +162,6 @@ public class EventControllerIT {
 	@Test
 	public void insertShouldReturn422WhenAdminLoggedAndNullCity() throws Exception {
 
-		String accessToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
 		LocalDate nextMonth = LocalDate.now().plusMonths(1L);
 		
 		EventDTO dto = new EventDTO(null, "Expo XP", nextMonth, "https://expoxp.com.br", null);
@@ -166,7 +169,7 @@ public class EventControllerIT {
 		
 		ResultActions result =
 				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + adminToken)
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -181,7 +184,7 @@ public class EventControllerIT {
 		
 		ResultActions result =
 				mockMvc.perform(get("/events")
-					.contentType(MediaType.APPLICATION_JSON));
+						.contentType(MediaType.APPLICATION_JSON));
 
 		result.andExpect(status().isOk());
 		result.andExpect(jsonPath("$.content").exists());
