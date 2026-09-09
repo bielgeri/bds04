@@ -3,12 +3,12 @@ package com.devsuperior.bds04.controllers;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,7 +20,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.devsuperior.bds04.dto.EventDTO;
-import com.devsuperior.bds04.tests.TokenUtil;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -84,7 +83,8 @@ public class EventControllerIT {
 					mockMvc.perform(post("/events").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON));
+					.accept(MediaType.APPLICATION_JSON))
+					.andDo(print());
 		
 		result.andExpect(status().isCreated());
 		result.andExpect(jsonPath("$.id").exists());
@@ -149,7 +149,7 @@ public class EventControllerIT {
 		
 		result.andExpect(status().isUnprocessableContent());
 		result.andExpect(jsonPath("$.errors[0].fieldName").value("cityId"));
-		result.andExpect(jsonPath("$.errors[0].message").value("Campo requerido"));
+		result.andExpect(jsonPath("$.errors[0].message").value("Campo obrigatório"));
 	}
 
 	@Test
