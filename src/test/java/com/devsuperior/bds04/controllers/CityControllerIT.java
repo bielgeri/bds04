@@ -1,22 +1,23 @@
 package com.devsuperior.bds04.controllers;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.devsuperior.bds04.dto.CityDTO;
-import com.devsuperior.bds04.tests.TokenUtil;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -30,29 +31,6 @@ public class CityControllerIT {
 	
 	@Autowired
 	private ObjectMapper objectMapper;
-	
-	@Autowired
-	private TokenUtil tokenUtil;
-
-	private String clientUsername;
-	private String clientPassword;
-	private String adminUsername;
-	private String adminPassword;
-	private String clientToken;
-	private String adminToken;
-	private String invalidToken;
-	
-	@BeforeEach
-	void setUp() throws Exception {
-		
-		clientUsername = "ana@gmail.com";
-		clientPassword = "123456";
-		adminUsername = "bob@gmail.com";
-		adminPassword = "123456";
-		clientToken = tokenUtil.obtainAccessToken(mockMvc, clientUsername, clientPassword);
-		adminToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
-		invalidToken = adminToken + "xpto"; // Simulates a wrong token
-	}
 
 	@Test
 	public void insertShouldReturn401WhenIvalidToken() throws Exception {
@@ -61,8 +39,7 @@ public class CityControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/cities")
-					.header("Authorization", "Bearer " + invalidToken)
+					mockMvc.perform(post("/cities")
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -77,8 +54,7 @@ public class CityControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/cities")
-					.header("Authorization", "Bearer " + clientToken)
+					mockMvc.perform(post("/cities").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_OPERATOR")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -93,8 +69,7 @@ public class CityControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/cities")
-					.header("Authorization", "Bearer " + adminToken)
+					mockMvc.perform(post("/cities").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -111,13 +86,12 @@ public class CityControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/cities")
-					.header("Authorization", "Bearer " + adminToken)
+				mockMvc.perform(post("/cities").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
 		
-		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(status().isUnprocessableContent());
 		result.andExpect(jsonPath("$.errors[0].fieldName").value("name"));
 		result.andExpect(jsonPath("$.errors[0].message").value("Campo requerido"));
 	}

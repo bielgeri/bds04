@@ -1,5 +1,6 @@
 package com.devsuperior.bds04.controllers;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,30 +35,6 @@ public class EventControllerIT {
 	@Autowired
 	private ObjectMapper objectMapper;
 	
-	@Autowired
-	private TokenUtil tokenUtil;
-
-	private String clientUsername;
-	private String clientPassword;
-	private String adminUsername;
-	private String adminPassword;
-	private String clientToken;
-	private String adminToken;
-	private String invalidToken;
-	
-	@BeforeEach
-	void setUp() throws Exception {
-		
-		clientUsername = "ana@gmail.com";
-		clientPassword = "123456";
-		adminUsername = "bob@gmail.com";
-		adminPassword = "123456";
-		
-		clientToken = tokenUtil.obtainAccessToken(mockMvc, clientUsername, clientPassword);
-		adminToken = tokenUtil.obtainAccessToken(mockMvc, adminUsername, adminPassword);
-		invalidToken = adminToken + "xpto"; // Simulates a wrong token
-	}
-
 	@Test
 	public void insertShouldReturn401WhenInvalidToken() throws Exception {
 
@@ -64,8 +42,7 @@ public class EventControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + invalidToken)
+					mockMvc.perform(post("/events")
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -82,8 +59,7 @@ public class EventControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + clientToken)
+					mockMvc.perform(post("/events").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_OPERATOR")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -104,9 +80,8 @@ public class EventControllerIT {
 		EventDTO dto = new EventDTO(null, "Expo XP", nextMonth, "https://expoxp.com.br", 1L);
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
-		ResultActions result =
-				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + adminToken)
+		ResultActions result = 
+					mockMvc.perform(post("/events").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
@@ -129,13 +104,12 @@ public class EventControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + adminToken)
+					mockMvc.perform(post("/events").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
 		
-		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(status().isUnprocessableContent());
 		result.andExpect(jsonPath("$.errors[0].fieldName").value("name"));
 		result.andExpect(jsonPath("$.errors[0].message").value("Campo requerido"));
 	}
@@ -149,13 +123,12 @@ public class EventControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + adminToken)
+					mockMvc.perform(post("/events").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
 		
-		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(status().isUnprocessableContent());
 		result.andExpect(jsonPath("$.errors[0].fieldName").value("date"));
 		result.andExpect(jsonPath("$.errors[0].message").value("A data do evento não pode ser passada"));
 	}
@@ -169,13 +142,12 @@ public class EventControllerIT {
 		String jsonBody = objectMapper.writeValueAsString(dto);
 		
 		ResultActions result =
-				mockMvc.perform(post("/events")
-					.header("Authorization", "Bearer " + adminToken)
+					mockMvc.perform(post("/events").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 					.content(jsonBody)
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON));
 		
-		result.andExpect(status().isUnprocessableEntity());
+		result.andExpect(status().isUnprocessableContent());
 		result.andExpect(jsonPath("$.errors[0].fieldName").value("cityId"));
 		result.andExpect(jsonPath("$.errors[0].message").value("Campo requerido"));
 	}

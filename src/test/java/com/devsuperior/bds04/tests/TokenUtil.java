@@ -16,10 +16,10 @@ import org.springframework.util.MultiValueMap;
 @Component
 public class TokenUtil {
 
-	@Value("${security.client-id}")
+	@Value("${security.oauth2.client.client-id}")
 	private String clientId;
 
-	@Value("${security.client-secret}")
+	@Value("${security.oauth2.client.client-secret}")
 	private String clientSecret;
 	
 	public String obtainAccessToken(MockMvc mockMvc, String username, String password) throws Exception {
@@ -31,7 +31,7 @@ public class TokenUtil {
 		params.add("password", password);
 
 		ResultActions result = mockMvc
-				.perform(post("/oauth2/token")
+				.perform(post("/oauth/token")
 						.params(params)
 						.with(httpBasic(clientId, clientSecret))
 						.accept("application/json;charset=UTF-8"))
